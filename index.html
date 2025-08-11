@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Control Pro - Hand Gesture Cursor Controller</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass-effect {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-offline { background-color: #ef4444; }
+        .status-online { background-color: #10b981; animation: pulse 2s infinite; }
+        .status-connecting { background-color: #f59e0b; animation: pulse 1s infinite; }
+        
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            z-index: 1000;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chat-minimized {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+        }
+        
+        .gesture-card {
+            transition: all 0.3s ease;
+        }
+        
+        .gesture-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .camera-warning {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .star-rating {
+            color: #fbbf24;
+        }
+        
+        @media print {
+            .chat-widget { display: none !important; }
+            body { print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center">
+                        <i class="fas fa-hand-paper text-white text-lg"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold gradient-text">Gesture Control Pro</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:inline"></i>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <span class="status-indicator status-offline" id="statusIndicator"></span>
+                        <span class="text-sm text-gray-600 dark:text-gray-300" id="statusText">Disconnected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="animate-float mb-8">
+                <i class="fas fa-hand-peace text-6xl mb-4 opacity-80"></i>
+            </div>
+            <h2 class="text-5xl font-bold mb-6">Control Your Computer with Hand Gestures</h2>
+            <p class="text-xl mb-8 opacity-90 max-w-3xl mx-auto">
+                Experience the future of human-computer interaction. Our advanced AI-powered system transforms your hand movements into precise cursor control, eliminating the need for traditional input devices.
+            </p>
+            
+            <!-- Camera Warning -->
+            <div class="max-w-2xl mx-auto mb-8">
+                <div class="glass-effect rounded-2xl p-6 camera-warning">
+                    <div class="flex items-center justify-center mb-4">
+                        <i class="fas fa-video text-3xl text-yellow-300 mr-3"></i>
+                        <h3 class="text-xl font-semibold text-yellow-300">Camera Access Required</h3>
+                    </div>
+                    <p class="text-sm opacity-90 mb-4">
+                        This application requires access to your camera to detect hand gestures. Your privacy is our priority:
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt text-green-300 mr-2"></i>
+                            <span>No data is stored</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-eye-slash text-green-300 mr-2"></i>
+                            <span>Local processing only</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-lock text-green-300 mr-2"></i>
+                            <span>Secure connection</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Control Panel -->
+    <section class="py-16 bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Control Panel</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Control Buttons -->
+                <div class="space-y-6">
+                    <div class="text-center">
+                        <button id="startBtn" class="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-2xl text-xl shadow-lg transform hover:scale-105 transition-all duration-300">
+                            <i class="fas fa-play mr-3"></i>
+                            START GESTURE CONTROL
+                        </button>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button id="stopBtn" disabled class="w-full bg-gray-400 text-white font-bold py-4 px-8 rounded-2xl text-lg shadow-lg opacity-50 cursor-not-allowed transition-all duration-300">
+                            <i class="fas fa-stop mr-3"></i>
+                            STOP CONTROL
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-2xl p-6 transition-colors duration-300">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">System Status</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600 dark:text-gray-300">Connection</span>
+                                <span id="connectionStatus" class="text-red-500">Disconnected</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600 dark:text-gray-300">Camera</span>
+                                <span id="cameraStatus" class="text-red-500">Not accessed</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600 dark:text-gray-300">Gesture Recognition</span>
+                                <span id="gestureStatus" class="text-red-500">Inactive</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600 dark:text-gray-300">Current Gesture</span>
+                                <span id="currentGesture" class="text-gray-400">None</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Camera Feed -->
+                <div class="flex flex-col items-center">
+                    <div class="w-full max-w-md aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-lg relative">
+                        <video id="cameraFeed" class="w-full h-full object-cover" autoplay playsinline></video>
+                        <div id="cameraPlaceholder" class="absolute inset-0 flex items-center justify-center text-white">
+                            <div class="text-center">
+                                <i class="fas fa-camera text-4xl mb-4 opacity-50"></i>
+                                <p class="opacity-75">Camera feed will appear here</p>
+                            </div>
+                        </div>
+                        <div id="loadingSpinner" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+                        Position your hand in front of the camera for gesture recognition
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Supported Gestures</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- V Gesture -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-hand-peace text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">V Gesture</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Move cursor smoothly across the screen with precise control</p>
+                </div>
+                
+                <!-- Fist -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-fist-raised text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Fist</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Click and drag items by making a fist gesture</p>
+                </div>
+                
+                <!-- Pinch Major -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-compress-alt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Pinch (Major Hand)</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Control system volume and brightness with pinch gestures</p>
+                </div>
+                
+                <!-- Pinch Minor -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-expand-alt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Pinch (Minor Hand)</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Scroll horizontally and vertically through content</p>
+                </div>
+                
+                <!-- Index -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-hand-point-up text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Index</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Right-click functionality for context menus</p>
+                </div>
+                
+                <!-- Two Finger -->
+                <div class="gesture-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg transition-colors duration-300">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-hand-scissors text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Two Finger Closed</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Double-click functionality for quick actions</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="py-16 bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">User Reviews</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-2xl p-6 transition-colors duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face&auto=format" alt="User" class="w-12 h-12 rounded-full mr-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-800 dark:text-white">Alex Johnson</h3>
+                            <div class="star-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300">"Absolutely revolutionary! This gesture control system has transformed how I interact with my computer. The accuracy is impressive and it's so intuitive to use."</p>
+                </div>
+                
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-2xl p-6 transition-colors duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://images.unsplash.com/photo-1494790108755-2616b612b789?w=60&h=60&fit=crop&crop=face&auto=format" alt="User" class="w-12 h-12 rounded-full mr-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-800 dark:text-white">Sarah Chen</h3>
+                            <div class="star-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300">"As someone with RSI, this tool has been a lifesaver. I can now work for hours without strain. The gesture recognition is remarkably responsive."</p>
+                </div>
+                
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-2xl p-6 transition-colors duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face&auto=format" alt="User" class="w-12 h-12 rounded-full mr-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-800 dark:text-white">Mike Rodriguez</h3>
+                            <div class="star-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300">"The future is here! I feel like I'm in a sci-fi movie. The precision and smoothness of the cursor control is outstanding. Highly recommended!"</p>
+                </div>
+            </div>
+            
+            <!-- Add Review Form -->
+            <div class="mt-12 max-w-2xl mx-auto">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-2xl p-6 transition-colors duration-300">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Share Your Experience</h3>
+                    <form id="reviewForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" placeholder="Your Name" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white transition-colors duration-300" required>
+                            <select class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white transition-colors duration-300" required>
+                                <option value="">Rating</option>
+                                <option value="5">5 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="2">2 Stars</option>
+                                <option value="1">1 Star</option>
+                            </select>
+                        </div>
+                        <textarea placeholder="Your review..." rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white transition-colors duration-300" required></textarea>
+                        <button type="submit" class="gradient-bg text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity">Submit Review</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Suggestions Section -->
+    <section class="py-16 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Suggestions & Feedback</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg transition-colors duration-300">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Suggestion Form -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                            Submit a Suggestion
+                        </h3>
+                        <form id="suggestionForm" class="space-y-4">
+                            <input type="text" placeholder="Your Name" class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white transition-colors duration-300" required>
+                            <select class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white transition-colors duration-300" required>
+                                <option value="">Category</option>
+                                <option value="feature">New Feature</option>
+                                <option value="improvement">Improvement</option>
+                                <option value="bug">Bug Report</option>
+                                <option value="ui">UI/UX</option>
+                                <option value="performance">Performance</option>
+                            </select>
+                            <textarea placeholder="Describe your suggestion..." rows="4" class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white transition-colors duration-300" required></textarea>
+                            <button type="submit" class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity w-full">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Submit Suggestion
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Popular Suggestions -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+                            <i class="fas fa-fire text-red-500 mr-2"></i>
+                            Popular Requests
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors duration-300">
+                                <div class="flex items-center">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                                    <span class="text-gray-800 dark:text-white">Voice commands integration</span>
+                                </div>
+                                <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">47 votes</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors duration-300">
+                                <div class="flex items-center">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                                    <span class="text-gray-800 dark:text-white">Custom gesture mapping</span>
+                                </div>
+                                <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">32 votes</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors duration-300">
+                                <div class="flex items-center">
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                                    <span class="text-gray-800 dark:text-white">Multi-monitor support</span>
+                                </div>
+                                <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-full">28 votes</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors duration-300">
+                                <div class="flex items-center">
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                                    <span class="text-gray-800 dark:text-white">Mobile app companion</span>
+                                </div>
+                                <span class="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full">21 votes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer with Share Options -->
+    <footer class="bg-white dark:bg-gray-800 py-12 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- About -->
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                            <i class="fas fa-hand-paper text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold gradient-text">Gesture Control Pro</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm">
+                        Revolutionizing human-computer interaction through advanced gesture recognition technology.
+                    </p>
+                </div>
+                
+                <!-- Share Options -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Share with Friends</h4>
+                    <div class="flex space-x-3">
+                        <button class="shareBtn w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors" data-platform="twitter">
+                            <i class="fab fa-twitter"></i>
+                        </button>
+                        <button class="shareBtn w-10 h-10 bg-blue-800 hover:bg-blue-900 text-white rounded-full flex items-center justify-center transition-colors" data-platform="facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button class="shareBtn w-10 h-10 bg-blue-700 hover:bg-blue-800 text-white rounded-full flex items-center justify-center transition-colors" data-platform="linkedin">
+                            <i class="fab fa-linkedin-in"></i>
+                        </button>
+                        <button class="shareBtn w-10 h-10 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center transition-colors" data-platform="whatsapp">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                        <button id="copyLinkBtn" class="w-10 h-10 bg-gray-600 hover:bg-gray-700 text-white rounded-full flex items-center justify-center transition-colors">
+                            <i class="fas fa-link"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Quick Links</h4>
+                    <div class="space-y-2 text-sm">
+                        <a href="#" class="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Documentation</a>
+                        <a href="#" class="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">API Reference</a>
+                        <a href="#" class="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Support</a>
+                        <a href="#" class="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center">
+                <p class="text-gray-600 dark:text-gray-300 text-sm">
+                    © 2024 Gesture Control Pro. All rights reserved. | Made with ❤️ for the future of computing
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chatbot Widget -->
+    <div id="chatWidget" class="chat-widget chat-minimized bg-white dark:bg-gray-800 shadow-2xl">
+        <!-- Minimized State -->
+        <div id="chatMinimized" class="flex items-center justify-center h-full cursor-pointer">
+            <i class="fas fa-comments text-2xl gradient-text"></i>
+        </div>
+        
+        <!-- Expanded State -->
+        <div id="chatExpanded" class="hidden flex flex-col h-full">
+            <!-- Chat Header -->
+            <div class="gradient-bg p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-robot text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-semibold">AI Assistant</h3>
+                        <span class="text-white text-xs opacity-80">Online</span>
+                    </div>
+                </div>
+                <button id="chatClose" class="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50 dark:bg-gray-700">
+                <div class="flex items-start space-x-2">
+                    <div class="w-6 h-6 gradient-bg rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-xs"></i>
+                    </div>
+                    <div class="bg-white dark:bg-gray-600 p-3 rounded-lg shadow-sm max-w-xs">
+                        <p class="text-sm text-gray-800 dark:text-white">Hi! I'm here to help you with Gesture Control Pro. How can I assist you today?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
+                <div class="flex space-x-2">
+                    <input id="chatInput" type="text" placeholder="Type your message..." class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                    <button id="chatSend" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // WebSocket connection for backend communication
+        let ws = null;
+        let isConnected = false;
+        let isRunning = false;
+        
+        // DOM Elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const gestureStatus = document.getElementById('gestureStatus');
+        const currentGesture = document.getElementById('currentGesture');
+        const cameraFeed = document.getElementById('cameraFeed');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = function(event) {
+                    isConnected = true;
+                    updateStatus('connected', 'Connected');
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.className = 'text-green-500';
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+                
+                ws.onclose = function(event) {
+                    isConnected = false;
+                    updateStatus('offline', 'Disconnected');
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.className = 'text-red-500';
+                    if (isRunning) {
+                        stopGestureControl();
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    updateStatus('offline', 'Connection Error');
+                };
+            } catch (error) {
+                console.error('WebSocket connection failed:', error);
+                updateStatus('offline', 'Connection Failed');
+            }
+        }
+        
+        // Handle WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'gesture_detected':
+                    currentGesture.textContent = data.gesture;
+                    currentGesture.className = 'text-blue-500';
+                    break;
+                case 'camera_status':
+                    cameraStatus.textContent = data.status;
+                    cameraStatus.className = data.status === 'Active' ? 'text-green-500' : 'text-red-500';
+                    break;
+                case 'error':
+                    showNotification(data.message, 'error');
+                    break;
+            }
+        }
+        
+        // Update status indicator
+        function updateStatus(status, text) {
+            statusIndicator.className = `status-indicator status-${status}`;
+            statusText.textContent = text;
+        }
+        
+        // Start gesture control
+        async function startGestureControl() {
+            try {
+                showLoading(true);
+                
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                
+                cameraFeed.srcObject = stream;
+                cameraPlaceholder.style.display = 'none';
+                cameraStatus.textContent = 'Active';
+                cameraStatus.className = 'text-green-500';
+                
+                // Start the Python backend
+                if (isConnected && ws) {
+                    ws.send(JSON.stringify({ command: 'start_gesture_control' }));
+                } else {
+                    // Fallback: start Python subprocess (requires server setup)
+                    await fetch('/api/start', { method: 'POST' });
+                }
+                
+                isRunning = true;
+                startBtn.disabled = true;
+                startBtn.className = startBtn.className.replace('hover:from-green-600', 'cursor-not-allowed opacity-50');
+                
+                stopBtn.disabled = false;
+                stopBtn.className = 'w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-2xl text-lg shadow-lg transform hover:scale-105 transition-all duration-300';
+                
+                gestureStatus.textContent = 'Active';
+                gestureStatus.className = 'text-green-500';
+                
+                updateStatus('online', 'Running');
+                showNotification('Gesture control started successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error starting gesture control:', error);
+                showNotification('Failed to start gesture control. Please check camera permissions.', 'error');
+                cameraStatus.textContent = 'Permission denied';
+                cameraStatus.className = 'text-red-500';
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Stop gesture control
+        function stopGestureControl() {
+            try {
+                // Stop camera feed
+                if (cameraFeed.srcObject) {
+                    const tracks = cameraFeed.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    cameraFeed.srcObject = null;
+                }
+                
+                cameraPlaceholder.style.display = 'flex';
+                cameraStatus.textContent = 'Stopped';
+                cameraStatus.className = 'text-red-500';
+                
+                // Stop Python backend
+                if (isConnected && ws) {
+                    ws.send(JSON.stringify({ command: 'stop_gesture_control' }));
+                } else {
+                    fetch('/api/stop', { method: 'POST' });
+                }
+                
+                isRunning = false;
+                startBtn.disabled = false;
+                startBtn.className = 'w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-6 px-12 rounded-2xl text-xl shadow-lg transform hover:scale-105 transition-all duration-300';
+                
+                stopBtn.disabled = true;
+                stopBtn.className = 'w-full bg-gray-400 text-white font-bold py-4 px-8 rounded-2xl text-lg shadow-lg opacity-50 cursor-not-allowed transition-all duration-300';
+                
+                gestureStatus.textContent = 'Inactive';
+                gestureStatus.className = 'text-red-500';
+                currentGesture.textContent = 'None';
+                currentGesture.className = 'text-gray-400';
+                
+                updateStatus('connecting', 'Connected');
+                showNotification('Gesture control stopped', 'info');
+                
+            } catch (error) {
+                console.error('Error stopping gesture control:', error);
+                showNotification('Error stopping gesture control', 'error');
+            }
+        }
+        
+        // Show loading spinner
+        function showLoading(show) {
+            loadingSpinner.style.display = show ? 'flex' : 'none';
+        }
+        
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'info' ? 'bg-blue-500' : 'bg-gray-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Theme toggle
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+        
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        
+        // Chatbot functionality
+        const chatWidget = document.getElementById('chatWidget');
+        const chatMinimized = document.getElementById('chatMinimized');
+        const chatExpanded = document.getElementById('chatExpanded');
+        const chatClose = document.getElementById('chatClose');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSend = document.getElementById('chatSend');
+        
+        function toggleChat() {
+            chatWidget.classList.toggle('chat-minimized');
+            chatMinimized.classList.toggle('hidden');
+            chatExpanded.classList.toggle('hidden');
+        }
+        
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'flex items-start space-x-2 justify-end';
+            userMsg.innerHTML = `
+                <div class="bg-blue-500 text-white p-3 rounded-lg shadow-sm max-w-xs">
+                    <p class="text-sm">${message}</p>
+                </div>
+                <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user text-white text-xs"></i>
+                </div>
+            `;
+            chatMessages.appendChild(userMsg);
+            
+            // Add bot response (simulated)
+            setTimeout(() => {
+                const botResponse = getBotResponse(message);
+                const botMsg = document.createElement('div');
+                botMsg.className = 'flex items-start space-x-2';
+                botMsg.innerHTML = `
+                    <div class="w-6 h-6 gradient-bg rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-xs"></i>
+                    </div>
+                    <div class="bg-white dark:bg-gray-600 p-3 rounded-lg shadow-sm max-w-xs">
+                        <p class="text-sm text-gray-800 dark:text-white">${botResponse}</p>
+                    </div>
+                `;
+                chatMessages.appendChild(botMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+            
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function getBotResponse(message) {
+            const responses = {
+                'hello': 'Hello! How can I help you with Gesture Control Pro?',
+                'help': 'I can help you with using gesture controls, troubleshooting, and answering questions about features.',
+                'gestures': 'Our system supports V-gesture for cursor movement, fist for clicking, pinch for volume/brightness control, and more!',
+                'camera': 'Make sure to allow camera access when prompted. The system needs to see your hands to detect gestures.',
+                'not working': 'Try checking your camera permissions, ensuring good lighting, and making sure your hands are clearly visible.',
+                'default': 'I understand you need help. Could you be more specific about what you\'d like to know about Gesture Control Pro?'
+            };
+            
+            const lowerMessage = message.toLowerCase();
+            for (const key in responses) {
+                if (lowerMessage.includes(key)) {
+                    return responses[key];
+                }
+            }
+            return responses.default;
+        }
+        
+        // Share functionality
+        function shareOnPlatform(platform) {
+            const url = window.location.href;
+            const text = 'Check out this amazing Gesture Control Pro - Control your computer with hand gestures!';
+            
+            const shareUrls = {
+                twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+                linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+                whatsapp: `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`
+            };
+            
+            if (shareUrls[platform]) {
+                window.open(shareUrls[platform], '_blank', 'width=600,height=400');
+            }
+        }
+        
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showNotification('Link copied to clipboard!', 'success');
+            });
+        }
+        
+        // Event Listeners
+        startBtn.addEventListener('click', startGestureControl);
+        stopBtn.addEventListener('click', stopGestureControl);
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        // Chat event listeners
+        chatMinimized.addEventListener('click', toggleChat);
+        chatClose.addEventListener('click', toggleChat);
+        chatSend.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+        
+        // Share buttons
+        document.querySelectorAll('.shareBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                shareOnPlatform(e.currentTarget.dataset.platform);
+            });
+        });
+        
+        document.getElementById('copyLinkBtn').addEventListener('click', copyLink);
+        
+        // Form submissions
+        document.getElementById('reviewForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('Thank you for your review!', 'success');
+            e.target.reset();
+        });
+        
+        document.getElementById('suggestionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('Suggestion submitted successfully!', 'success');
+            e.target.reset();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                if (!isRunning) {
+                    startGestureControl();
+                } else {
+                    stopGestureControl();
+                }
+            }
+            if (e.ctrlKey && e.key === 'h') {
+                e.preventDefault();
+                toggleChat();
+            }
+        });
+        
+        // Initialize
+        initTheme();
+        initWebSocket();
+        
+        // Show initial status
+        updateStatus('offline', 'Disconnected');
+        
+        // Retry WebSocket connection every 5 seconds if not connected
+        setInterval(() => {
+            if (!isConnected && !ws) {
+                initWebSocket();
+            }
+        }, 5000);
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
