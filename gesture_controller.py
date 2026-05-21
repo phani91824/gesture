@@ -1,104 +1,4 @@
 # Imports
-# app.py
-
-import base64
-import numpy as np
-import cv2
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit, send
-from geventwebsocket.handler import WebSocketHandler
-from gevent.pywsgi import WSGIServer
-# from gevent import monkey
-# monkey.patch_all()
-
-# Your existing gesture_controller.py code goes here...
-# I'll just represent it with a placeholder for now.
-# Please copy the full content of your provided backend code into this section.
-
-# ---------------------------------------- Existing Code ----------------------------------------
-# ... (Copy the entire content of gesture_controller.py here)
-# -----------------------------------------------------------------------------------------------
-
-# Flask and SocketIO setup
-app = Flask(__name__, static_folder='../frontend', template_folder='../frontend')
-app.config['SECRET_KEY'] = 'secret_key'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='gevent')
-
-# Global variable to store the gesture controller
-gc = None
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@socketio.on('connect')
-def handle_connect():
-    global gc
-    print('Client connected')
-    if gc is None:
-        gc = GestureController()
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    global gc
-    print('Client disconnected')
-    if gc:
-        gc.gc_mode = 0  # Stop the gesture controller loop
-        gc = None
-
-@socketio.on('message')
-def handle_message(data):
-    if data == 'start':
-        print("Starting gesture controller...")
-        gc.start()
-        emit('response', 'started')
-    elif data == 'stop':
-        print("Stopping gesture controller...")
-        gc.gc_mode = 0
-        emit('response', 'stopped')
-    else:
-        # This part handles image data from the client
-        try:
-            # Decode the base64 image data
-            img_data = base64.b64decode(data.split(',')[1])
-            nparr = np.frombuffer(img_data, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-            # Process the frame with your gesture recognition logic
-            # This is where your code from start() method will be integrated
-            # Note: For this to work, you need to refactor your gesture controller
-            # to process a single frame at a time, instead of looping through a webcam.
-            # You would need to create a function that takes a frame and returns a gesture.
-            
-            # Example: (This part needs to be implemented based on your code's structure)
-            # gesture_name = process_single_frame(frame, handmajor, handminor, hands_model)
-            
-            # For now, let's just send back a dummy gesture
-            gesture_name = 'V_GEST'
-            emit('gesture', gesture_name)
-
-        except Exception as e:
-            print(f"Error processing frame: {e}")
-            emit('error', 'Failed to process frame')
-
-if __name__ == '__main__':
-    print("Starting Flask-SocketIO server...")
-    http_server = WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
-    http_server.serve_forever()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import mediapipe as mp
 import cv2
 import pyautogui
@@ -684,6 +584,6 @@ class GestureController:
         GestureController.cap.release()
         cv2.destroyAllWindows()
 
-if __name__ == "__main__":
-    gc1 = GestureController()
-    gc1.start()
+# uncomment to run directly
+gc1 = GestureController()
+gc1.start()
